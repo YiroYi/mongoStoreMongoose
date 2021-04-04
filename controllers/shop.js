@@ -87,7 +87,7 @@ exports.postOrder = (req, res, next) => {
     .execPopulate()
     .then(user => {
       const products = user.cart.items.map(i => {
-        return {quantity: i.quantity, product: i.productId} // Esto Agrega el quantity al objeto products a cada elemento
+        return {quantity: i.quantity, product: {...i.productId._doc}} // Esto Agrega el quantity al objeto products a cada elemento
       });
 
       const order = new Order({
@@ -100,20 +100,21 @@ exports.postOrder = (req, res, next) => {
       return order.save();
     })
     .then(result => {
+      return req.user.clearCart();
+    })
+    .then(result => {
       res.redirect('/orders');
     })
     .catch(err => console.log(err));
 };
 
 exports.getOrders = (req, res, next) => {
-  req.user
-    .getOrders()
-    .then(orders => {
-      res.render('shop/orders', {
-        path: '/orders',
-        pageTitle: 'Your Orders',
-        orders: orders
-      });
-    })
-    .catch(err => console.log(err));
+  Order.find({"user.userId": req.user._id})
+  .then(orders => {
+    res.render('shop/orders', {
+      path: '/orders',
+      pageTitle: 'Your Orders',
+      orders: orders
+    });
+  }).catch(err => console.log(err));
 };
